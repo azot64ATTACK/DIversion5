@@ -1,0 +1,153 @@
+# DIVERSION Synthesizer: YAML-спецификация (описание синтезатора)
+# Формат: конфиг для генератора плагина (JUCE / Cmajor / свой движок)
+
+plugin:
+  name: DIVERSION Synthesizer
+  version: "1.4"
+  format: [VST3, VST2_x64]
+  host: FL Studio
+  type: hybrid          # субтрактивный + вэйвтейбл + FM
+  theme: black_white
+  size: {width: 736, height: 523}
+  presets_total: 1912
+
+# ---------- ЧУВСТВИТЕЛЬНОСТЬ РЕГУЛИРОВОК ----------
+sensitivity:
+  mode: very_high
+  knob_drag:
+    pixels_per_full_range: 60      # обычно 200, тут в 3+ раза чувствительнее
+    speed_multiplier: 4.0
+    fine_mode_key: shift           # shift = точная подстройка
+    fine_multiplier: 0.05
+  mouse_wheel_step: 0.002
+  touch_gain: 5.0                  # для сенсорного экрана
+  value_resolution: 0.0001         # шаг параметра (14+ бит)
+  response_curve: exponential      # маленькое движение = заметное изменение звука
+  curve_exponent: 2.2
+  smoothing_ms: 4                  # без щелчков при резких движениях
+  double_click: reset_to_default
+  midi_cc_resolution: 14bit
+  velocity_sensitivity: 1.0        # 100%
+  aftertouch_amount: 1.0
+
+# ---------- ДВИЖОК ----------
+engine:
+  sample_rate: 96000
+  oversampling: {options: [2x, 4x, 8x], default: 2x}
+  voices: 8
+  poly_mode: poly
+  declick: true
+  glide: {mode: legato, time_ms: 0}
+  unison: {voices: 1, detune_cents: 0, stereo: 0}
+  tune: {transpose: 0, bend_range: 2}
+
+# ---------- ОСЦИЛЛЯТОРЫ ----------
+oscillators:
+  count: 4
+  defaults:
+    waveform: basic_saw
+    octave: 0
+    note: 0
+    detune: 0
+    vibrato: 0
+    key_track: 100
+    phase: {value: 0, free: true, invert: false}
+    layers: [chip, sciss, sub, brill]
+    level: 0.8
+    pan: 0.5
+    bus: 1
+    filter:
+      mode: hyperbolic
+      cutoff: {min_hz: 20, max_hz: 20000, curve: exponential, default_hz: 20000}
+      resonance: {min: 0, max: 1.2, self_oscillation: true}
+      drive: {min: 0, max: 24, unit: dB}
+      ctrl: 0
+      key: 0
+      vel: 0
+  items:
+    - {id: OSC1, bus: 1, rm_fm_source: OSC2}
+    - {id: OSC2, bus: 1, rm_fm_source: OSC1}
+    - {id: OSC3, bus: 2, rm_fm_source: OSC4}
+    - {id: OSC4, bus: 2, rm_fm_source: OSC3}
+  wavetables: 256
+
+# ---------- ШИНЫ ----------
+buses:
+  - id: BUS1
+    filter: {mode: hyperbolic, cutoff_hz: 20000, res: 0, drive: 0, stereo: 0}
+    dist: {drive: 0, color: 0.5, treble: 0.5}
+    lofi: {bit: 24, noise: 0, rate: 1.0, key_track: 0, stereo: 0}
+    mode: poly
+    level: 1.0
+    pan: 0.5
+  - id: BUS2
+    filter: {mode: hyperbolic, cutoff_hz: 20000, res: 0, drive: 0, stereo: 0}
+    dist: {drive: 0, color: 0.5, treble: 0.5}
+    lofi: {bit: 24, noise: 0, rate: 1.0, key_track: 0, stereo: 0}
+    mode: poly
+    level: 1.0
+    pan: 0.5
+
+master:
+  level: 0.8
+  pan: 0.5
+  mono: false
+  treble: bright
+  mastermorph: true     # плавное смешивание двух пресетов
+
+# ---------- МОДУЛЯТОРЫ ----------
+modulators:
+  lfo:
+    count: 3
+    defaults: {shape: triangle, amount: 0, rate_hz: 2.0, phase: 0, trigger: free, speed: "1/1"}
+  vibrato: {rate_hz: 5.5, depth_cents: 0}
+  envelopes:
+    count: 3
+    amp: {attack_ms: 0.5, decay_ms: 200, sustain: 0.8, release_ms: 150}
+    defaults: {curve: exp, key_track: 0, slope: 0, velocity: 100, speed: 10s}
+  mseg:
+    count: 4
+    max_points: 64
+    mode: curve
+    scale: "1/16"
+    rate: 100
+    trigger: poly
+
+# ---------- МОДУЛЯЦИОННАЯ МАТРИЦА ----------
+mod_matrix:
+  slots: 16
+  slot_template: {source: none, amount: 0, target: none, bipolar: true}
+  sources: [LFO1, LFO2, LFO3, ENV1, ENV2, ENV3, AMP, MSEG1, MSEG2, MSEG3, MSEG4, VEL, KEY, MODWHEEL, AFTERTOUCH]
+  targets: [cutoff, resonance, drive, pitch, level, pan, phase, wavetable_pos, unison_detune, bus_send]
+
+# ---------- ЭФФЕКТЫ, АРПЕГГИАТОР ----------
+fx:
+  enabled: true
+  chain: [distortion, chorus, delay, reverb, eq]
+arp:
+  enabled: false
+  patterns: [up, down, updown, random]
+  gate: off
+
+# ---------- ПРЕСЕТЫ (1912) ----------
+presets:
+  default: {name: Default, note: Factory reset}
+  categories:
+    Bass: 260
+    Lead: 240
+    Pad: 220
+    Pluck: 180
+    Keys: 150
+    FX: 200
+    Arp: 160
+    Sequence: 120
+    Drums: 90
+    Ambient: 140
+    Brass_Strings: 80
+    Vocal: 72
+  generate:
+    method: randomize_with_constraints   # правила для разумной генерации
+    seed: 1912
+    mutate_params: [wavetable, cutoff, resonance, drive, unison, mod_matrix, fx]
+    check_peak_below_dbfs: -1.0
+  file_format: json
